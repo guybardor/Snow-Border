@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 using UnityEngine;
 using UnityEngine.U2D;
 
@@ -5,11 +7,42 @@ using UnityEngine.U2D;
 [RequireComponent(typeof(SpriteShapeController))]
 public class EdgeColliderUpdater : MonoBehaviour
 {
+    private static EdgeColliderUpdater instance;
+
+    public static EdgeColliderUpdater Instance
+    {
+        get
+        {
+            if (instance == null)
+            {
+                instance = FindObjectOfType<EdgeColliderUpdater>();
+                if (instance == null)
+                {
+                    GameObject singletonObject = new GameObject();
+                    instance = singletonObject.AddComponent<EdgeColliderUpdater>();
+                    singletonObject.name = typeof(EdgeColliderUpdater).ToString() + " (Singleton)";
+                }
+            }
+            return instance;
+        }
+    }
+
     private SpriteShapeController shapeController;
     private EdgeCollider2D edgeCollider;
 
-    void Start()
+    private void Awake()
     {
+        if (instance == null)
+        {
+            instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else if (instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         shapeController = GetComponent<SpriteShapeController>();
         edgeCollider = GetComponent<EdgeCollider2D>();
     }

@@ -1,50 +1,65 @@
 using System.Collections;
-using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class CrashDetector : MonoBehaviour
-
 {
+    private static CrashDetector instance;
+    [SerializeField] private bool IsCrash = false;
+    [SerializeField] private bool canCollideWithGround = true; // Prevent multiple collisions with the ground
 
-    [SerializeField] private float  Dealy_finishLine = 3f;
-    [SerializeField] public AudioClip m_AudioClip;
-    [SerializeField] private bool Iscrash;
-    [SerializeField] private AudioSource m_AudioSource;
-   
-   private void Awake() {
-        setCrashStatus(false);  
-        m_AudioSource = GetComponent<AudioSource>();
-       m_AudioSource.Play();
-       
-    }
-
-
-private void OnTriggerEnter2D(Collider2D other) 
-{
-    if (other.gameObject.CompareTag("Ground")) 
+    public static CrashDetector Instance
     {
-        //m_AudioSource.PlayOneShot(m_AudioClip); 
-        setCrashStatus(true); 
-        m_AudioSource.PlayOneShot(m_AudioClip);  
-        Invoke("LoadScene", Dealy_finishLine);    
+        get
+        {
+            if (instance == null)
+            {
+                instance = FindObjectOfType<CrashDetector>();
+                if (instance == null)
+                {
+                    GameObject singletonObject = new GameObject();
+                    instance = singletonObject.AddComponent<CrashDetector>();
+                    singletonObject.name = typeof(CrashDetector).ToString() + " (Singleton)";
+                    
+                }
+            }
+            return instance;
+        }
     }
 
-} 
+    private void Awake()
+    {
+        if (instance == null)
+        {
+            instance = this;
+          
+        }
+        else if (instance != this)
+        {
+            Destroy(gameObject); // Destroy duplicates of the singleton
+            return;
+        }
+        IsCrash = false;
+    }
 
- private void LoadScene() {
-     SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-  }
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (canCollideWithGround && other.gameObject.CompareTag("Ground"))
+        {
+            Debug.Log("Crash!");
+            LifeManager.Instance.ReduceLife(); // Example of calling another singleton
+            StartCoroutine(DelayCollision()); // Start the coroutine for handling delay
+        }
+    }
 
-  public bool getCrashStatus() {
-    return Iscrash;
-  }
+    private IEnumerator DelayCollision()
+    {
+        canCollideWithGround = false;
 
-  private  void setCrashStatus(bool status) {
-    Iscrash = status;
-  }
+        // Call the ResetPosition method from the PlayerController class
+        PlayerController.Instance.ResetPosition();
 
+        yield return new WaitForSeconds(5f);
 
-
+        canCollideWithGround = true;
+    }
 }
